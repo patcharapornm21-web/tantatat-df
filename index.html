@@ -403,7 +403,7 @@
   td.cc.half i{background:#F2700F;border-color:#F2700F}
   td.cc.nog i{background:#fff;border:1.5px solid #8E9BB3}
   td.cc.half i::before,td.cc.nog i::before{border:0;transform:none;width:auto;height:auto;font-style:normal;font-weight:700;line-height:1}
-  td.cc.half i::before{content:"50%";color:#fff;font-size:8.5px}
+  td.cc.half i::before{content:"1200";color:#fff;font-size:7.5px;letter-spacing:-.02em}
   td.cc.nog i::before{content:"No G";color:#5A6B8C;font-size:7px}
   .cal.ro td.cc.on:not(.half):not(.nog) i{background:#7FA9D9;border-color:#7FA9D9}
   table.cal tfoot td{background:#F5F5F7;font-weight:600;color:#0058B0;border-top:1px solid var(--line);padding:9px 2px}
@@ -431,6 +431,20 @@
   @media (max-width:640px){.gcards{grid-template-columns:1fr}}
   .gcard{border:1px solid var(--line);border-radius:14px;padding:10px 12px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;font-size:13px}
   .gcard small{display:block;color:var(--ink2);font-size:11px}
+  .field label.gcard{display:flex;margin:0;color:var(--ink);font-size:13px;font-weight:400}
+  table.daily th{white-space:nowrap}
+  .gcard input[type=radio]{margin:3px 0 0;flex:none;width:16px;height:16px;accent-color:#0071E3}
+  .gcard b{display:block;font-weight:600}
+  .pt-empty{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:16px;padding:22px}
+  @media (max-width:900px){.pt-empty{grid-template-columns:1fr}}
+  .pt-drop{border:2px dashed #B9D4F6;border-radius:20px;background:#F5F9FF;padding:26px;text-align:center;cursor:pointer;position:relative;transition:all .2s;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:200px}
+  .pt-drop:hover,.pt-drop.drag{border-color:#0071E3;background:#EAF3FE}
+  .pt-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+  .pt-act{border:1px solid var(--line);border-radius:20px;padding:22px;display:flex;flex-direction:column;gap:8px;cursor:pointer;transition:all .2s;background:#fff;text-align:left;font:inherit}
+  .pt-act:hover{border-color:#0071E3;box-shadow:0 6px 20px rgba(0,113,227,.08)}
+  .pt-act .ic,.pt-drop .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;background:var(--blue-soft);color:#0058B0}
+  .pt-act b,.pt-drop b{font-size:15px;color:var(--ink)}
+  .pt-act span,.pt-drop span{font-size:12.5px;color:var(--ink2)}
   .gcard.sel{border-color:#0071E3;background:#F3F8FF;box-shadow:0 0 0 3px rgba(0,113,227,.1)}
   .gcard.sel.r{border-color:#D70015;background:#FFF6F6;box-shadow:0 0 0 3px rgba(215,0,21,.08)}
   .scard{border-radius:20px;padding:18px;gap:14px;box-shadow:var(--shadow)}
@@ -701,6 +715,8 @@ const TYPE_LABEL = {1:'แบบ 1 · ชั่วคราว', 2:'แบบ 2 
 const TYPE_FULL = {1:'ทันตแพทย์ชั่วคราว (Tier 1–3) อัตราปกติ', 2:'ทันตแพทย์ชั่วคราว ช่วงปรับเพิ่มพิเศษ Guarantee +10%', 3:'ทันตแพทย์ผู้ดำเนินการสาขา (Tier 4)', 4:'ทันตแพทย์ทั่วไป อัตราคงที่ต่อวัน (เทียบทั้งเดือน)', 5:'RDM (Regional Doctor Manager) สัญญาการันตีรายเดือน'};
 /* กลุ่มแพทย์ 3 แบบ: ทั่วไป / ผู้ดำเนินการ / RDM (ยอด RDM เป็นความลับ ไม่เผยแพร่ให้สาขา) */
 const GROUPS = { general: { t: 'หมอทั่วไป', c: 'b-info', i: 'stethoscope', types: [1, 2, 4] }, operating: { t: 'หมอผู้ดำเนินการ', c: 'b-g', i: 'badge-check', types: [3] }, rdm: { t: 'RDM', c: 'b-red', i: 'lock', types: [5] } };
+const PGA = () => +state.settings.partialGuar || 1200; // ประกันพิเศษรายวัน (บาท)
+const pgaTxt = () => `ประกัน ${fmt0(PGA())}`;
 const groupOfType = t => +t === 3 ? 'operating' : +t === 5 ? 'rdm' : 'general';
 const groupPill = g => { const x = GROUPS[g] || GROUPS.general; return `<span class="badge ${x.c}"><i data-lucide="${x.i}"></i>${x.t}</span>`; };
 const typeOptions = sel => Object.entries(GROUPS).map(([g, x]) => `<optgroup label="${x.t}">${x.types.map(t => `<option value="${t}" ${+sel === t ? 'selected' : ''}>${TYPE_LABEL[t]}</option>`).join('')}</optgroup>`).join('');
@@ -709,7 +725,7 @@ const groupOptions = sel => Object.entries(GROUPS).map(([g, x]) => `<option valu
 const DEFAULT_SETTINGS = {
   rate1: 3000, rate2: 4000, rate3: 5000, t2Start: 12, t3Start: 20,
   top1: 0, top2: 3, top3: 7, top4: 10, type2Bonus: 10,
-  rate4: 4000, rdmGuarantee: 500000, wht: 3, t3Guarantee: 150000, t3Sched: 0, defaultType: 1,
+  rate4: 4000, partialGuar: 1200, rdmGuarantee: 500000, wht: 3, t3Guarantee: 150000, t3Sched: 0, defaultType: 1,
   feeDeduct: true, feeRate: 3, feeExempt: 'บางแสน, ศรีราชา', fbConfig: '',
   coName: 'บริษัท ทันตะทัตถ์ คลินิก จำกัด', coNameEn: 'TANTATAT CLINIC COMPANY LIMITED',
   coAddr: '183 อาคารรีเจ้นท์ เฮ้าส์ ชั้นที่ 11 ถนนราชดำริห์ แขวงลุมพินี เขตปทุมวัน กรุงเทพมหานคร 10330',
@@ -888,7 +904,7 @@ function compute() {
   const map = new Map();
   const AL = state.aliases || {};
   const get = (k, name) => { k = AL[k] || k;
-    if (!map.has(k)) map.set(k, { key: k, name, rDates: new Map(), rG: new Map(), rCount: 0, rBranch: {}, df: new Map(), dfNoDate: 0, feeNoDate: 0, dfBranch: {}, inRoster: false, inDF: false, code: '' });
+    if (!map.has(k)) map.set(k, { key: k, name, rDates: new Map(), rG: new Map(), rGA: new Map(), rCount: 0, rBranch: {}, df: new Map(), dfNoDate: 0, feeNoDate: 0, dfBranch: {}, inRoster: false, inDF: false, code: '' });
     return map.get(k);
   };
   let outOfPeriod = 0;
@@ -904,7 +920,7 @@ function compute() {
     if (!inPer(r.date)) { outOfPeriod++; return; }
     const d = get(r.key, r.name); d.inRoster = true;
     if (r.code) d.code = r.code;
-    if (r.date && r.g) d.rG.set(r.date, r.g);
+    if (r.date && r.g) { d.rG.set(r.date, r.g); if (r.ga) d.rGA.set(r.date, +r.ga); }
     if (r.date) { const prev = d.rDates.get(r.date); d.rDates.set(r.date, prev ? (prev.includes(r.branch) || !r.branch ? prev : prev + ', ' + r.branch) : (r.branch || '')); }
     else d.rCount += r.days || 0;
     if (r.branch) d.rBranch[r.branch] = (d.rBranch[r.branch] || 0) + (r.days || 1);
@@ -948,29 +964,30 @@ function compute() {
     const dfOverridden = p.overrideDF != null && p.overrideDF !== '';
     const earned = dfOverridden ? +p.overrideDF : earnedRaw;
 
-    // Guarantee — สิทธิ์ประกันรายวันจากพอร์ทัลสาขา: เต็มวัน = 1, ครึ่งวัน (h) = 0.5, ไม่ได้ประกัน (n) = 0
-    const gfac = (source === 'roster' || source === 'df') ? workDates.map(x => { const g = d.rG.get(x); return g === 'h' ? 0.5 : g === 'n' ? 0 : 1; }) : [];
-    const fOf = i => gfac[i - 1] ?? 1;
-    const gHalf = gfac.filter(f => f === 0.5).length, gNone = gfac.filter(f => f === 0).length;
+    // Guarantee — สิทธิ์ประกันรายวันจากพอร์ทัลสาขา: ได้ประกัน (ปกติ) · ประกัน 1,200 (h = ยอดตายตัวของวันนั้น) · ไม่ได้ประกัน (n = 0)
+    const gl = (source === 'roster' || source === 'df') ? workDates.map(x => { const g = d.rG.get(x); return g === 'h' ? { k: 'h', a: d.rGA.get(x) || PGA() } : g === 'n' ? { k: 'n' } : { k: 'f' }; }) : [];
+    const gOf = i => gl[i - 1] || { k: 'f' };
+    const gHalf = gl.filter(z => z.k === 'h').length, gNone = gl.filter(z => z.k === 'n').length;
+    const fixedSum = gl.filter(z => z.k === 'h').reduce((t, z) => t + z.a, 0);
     let base, G, topPct, tierLabel, perDay = [], ratio = 1, sched = 0;
     if (type === 3) {
       sched = +p.schedDays || +S.t3Sched || weekdaysIn(per || defaultPeriod());
-      let eff = 0; for (let i = 1; i <= days; i++) eff += fOf(i);
-      ratio = sched > 0 ? Math.min(1, eff / sched) : 0;
+      let full = 0; for (let i = 1; i <= days; i++) if (gOf(i).k === 'f') full++;
+      ratio = sched > 0 ? Math.min(1, full / sched) : 0;
       base = +p.guarantee || 0;
-      G = base * ratio;
+      G = Math.min(base, base * ratio + fixedSum);
       topPct = S.top4; tierLabel = 'Tier 4';
-      for (let i = 1; i <= days; i++) perDay.push(sched > 0 ? base / sched * fOf(i) : 0);
+      for (let i = 1; i <= days; i++) { const z = gOf(i); perDay.push(z.k === 'h' ? z.a : z.k === 'n' || sched <= 0 ? 0 : base / sched); }
     } else if (type === 5) {
       base = +(p.rdmGuarantee ?? S.rdmGuarantee) || 0; G = base; topPct = 0; tierLabel = 'RDM';
       for (let i = 1; i <= days; i++) perDay.push(0);
     } else if (type === 4) {
-      base = 0; for (let i = 1; i <= days; i++) { perDay.push(S.rate4 * fOf(i)); base += S.rate4 * fOf(i); }
+      base = 0; for (let i = 1; i <= days; i++) { const z = gOf(i), v = z.k === 'h' ? z.a : z.k === 'n' ? 0 : S.rate4; perDay.push(v); base += v; }
       G = base; topPct = 0; tierLabel = 'Flat';
     } else {
       const mult = type === 2 ? 1 + S.type2Bonus / 100 : 1;
-      base = 0; for (let i = 1; i <= days; i++) { base += dayRate(i, S) * fOf(i); perDay.push(dayRate(i, S) * mult * fOf(i)); }
-      G = base * mult;
+      base = 0; for (let i = 1; i <= days; i++) { const z = gOf(i); if (z.k === 'f') base += dayRate(i, S); perDay.push(z.k === 'h' ? z.a : z.k === 'n' ? 0 : dayRate(i, S) * mult); }
+      G = base * mult + fixedSum;
       const t = tierOf(days, S);
       topPct = days > 0 ? [0, S.top1, S.top2, S.top3][t] : 0; tierLabel = `Tier ${t}`;
     }
@@ -999,7 +1016,7 @@ function compute() {
       let status;
       if (rosterLoaded && d.inRoster && rDates.length) status = inR ? (amt > 0 ? 'ok' : 'nocase') : (amt !== 0 && !extraSet.has(dt) ? 'off' : 'ok');
       else status = amt > 0 ? 'ok' : 'nocase';
-      return { date: dt, branch: (inR ? d.rDates.get(dt) : '') || (a ? a.branches.join(', ') : ''), dfBranch: a ? a.branches.join(', ') : '', inRoster: inR, g: d.rG.get(dt) || '', amount: amt, fee: a ? a.fee : 0, idx, gDay: idx && perDay[idx - 1] != null ? perDay[idx - 1] : 0, status };
+      return { date: dt, branch: (inR ? d.rDates.get(dt) : '') || (a ? a.branches.join(', ') : ''), dfBranch: a ? a.branches.join(', ') : '', inRoster: inR, g: d.rG.get(dt) || '', ga: d.rGA.get(dt) || 0, amount: amt, fee: a ? a.fee : 0, idx, gDay: idx && perDay[idx - 1] != null ? perDay[idx - 1] : 0, status };
     });
 
     // alerts
@@ -1031,7 +1048,7 @@ function compute() {
       key: d.key, name: p.name || d.name, code: p.code || d.code || '', branch, type, p,
       days, source, earned, earnedRaw, dfOverridden, fee: r2(fee), feeApplied: winner === 'df' ? feeApplied : 0,
       base: r2(base), G, ratio, sched, topPct, topAmt, totalEarned, netEarned, winner, final, hqTop,
-      whtPct, wht, net, tierLabel, daily, gHalf, gNone, vatInc, whtBase, group: groupOfType(type), dfNoDate: d.dfNoDate, alerts,
+      whtPct, wht, net, tierLabel, daily, gHalf, gNone, fixedSum, vatInc, whtBase, group: groupOfType(type), dfNoDate: d.dfNoDate, alerts,
       hardAlerts: alerts.filter(a => !a.soft).length, noCase, off,
       dfDays: daily.filter(x => x.amount > 0).length, inRoster: d.inRoster, inDF: d.inDF
     });
@@ -1185,7 +1202,7 @@ function openBreakdown(key) {
   const S = state.settings, p = r.p;
   const maxAmt = Math.max(1, ...r.daily.map(x => x.amount));
   const gDays = r.daily.filter(x => x.idx && x.amount <= 0).length;
-  const gNote = r.gHalf || r.gNone ? ` · ปรับสิทธิ์ประกัน: ครึ่งวัน ${r.gHalf} · ไม่ได้ประกัน ${r.gNone}` : '';
+  const gNote = r.gHalf || r.gNone ? ` · ปรับสิทธิ์ประกัน: ${pgaTxt()} ${r.gHalf} วัน (รวม ${fmt0(r.fixedSum || 0)}) · ไม่ได้ประกัน ${r.gNone} วัน` : '';
   const typeFormula = (r.type === 5 ? `สัญญา RDM ${fmt(r.base)} ต่อเดือน (ไม่ Prorate · เทียบ DF รวมทุกสาขา)` : r.type === 4 ? `${fmt0(S.rate4)} × ${r.days} วัน` : r.type === 3
     ? `${fmt(r.base)} × (${r.days} / ${r.sched})`
     : r.type === 2 ? `ขั้นบันได ${fmt(r.base)} × ${(1 + S.type2Bonus / 100).toFixed(2)}` : `ขั้นบันได ${stepFormula(r.days, S)}`) + gNote;
@@ -1201,7 +1218,7 @@ function openBreakdown(key) {
       <td><div class="bar"><i style="width:${Math.max(0, x.amount) / maxAmt * 100}%"></i></div></td>
       ${S.feeDeduct ? `<td class="r num muted">${fmt(x.fee)}</td>` : ''}
       <td class="r num">${x.idx ? fmt(x.gDay) : '<span class="muted">—</span>'}</td>
-      <td>${x.amount > 0 ? '<span class="badge b-ok"><i data-lucide="activity"></i>มีเคส</span>' : x.idx ? '<span class="badge b-g"><i data-lucide="shield-check"></i>Guarantee</span>' : '—'}${x.g === 'h' ? ' <span class="badge b-warn">ประกัน 50%</span>' : x.g === 'n' ? ' <span class="badge b-gray">ไม่ได้ประกัน</span>' : ''}</td>
+      <td>${x.amount > 0 ? '<span class="badge b-ok"><i data-lucide="activity"></i>มีเคส</span>' : x.idx ? '<span class="badge b-g"><i data-lucide="shield-check"></i>Guarantee</span>' : '—'}${x.g === 'h' ? ` <span class="badge b-warn">ประกัน ${fmt0(x.ga || PGA())}</span>` : x.g === 'n' ? ' <span class="badge b-gray">ไม่ได้ประกัน</span>' : ''}</td>
       <td>${x.status === 'nocase' && x.inRoster ? '<span class="badge b-warn"><i data-lucide="alert-triangle"></i>เข้าเวรแต่ไม่มียอดตรวจ</span>' : x.status === 'off' ? '<span class="badge b-info"><i data-lucide="calendar-plus"></i>นอกตารางเวร</span>' : '<span class="muted">ตรงตาราง</span>'}</td>
     </tr>`).join('')}
     ${r.dfNoDate ? `<tr><td class="muted">—</td><td colspan="3">DF ที่ไม่ระบุวันที่</td><td class="r num">${fmt(r.dfNoDate)}</td><td colspan="5"></td></tr>` : ''}
@@ -1282,7 +1299,7 @@ function openSettings() {
   openModal(`${mHead('ตั้งค่าการคำนวณ', 'ค่าเริ่มต้นตามนโยบาย — ปรับได้เมื่อมีการเปลี่ยนแปลงอัตรา', '<i data-lucide="settings-2" style="width:19px;height:19px"></i>')}
   <div class="m-body">
     <div class="group"><h4><i data-lucide="bar-chart-3"></i>Base Guarantee ขั้นบันได (แบบ 1–2)</h4>
-      <div class="fgrid c3">${n('rate1', 'วันที่ 1 – (Tier 2 − 1) / วัน')}${n('rate2', 'อัตรา Tier 2 / วัน')}${n('rate3', 'อัตรา Tier 3 / วัน')}${n('t2Start', 'Tier 2 เริ่มวันที่')}${n('t3Start', 'Tier 3 เริ่มวันที่')}${n('type2Bonus', 'แบบ 2 บวกเพิ่ม Guarantee (%)', 0.1)}${n('rate4', 'แบบ 4 อัตราคงที่ / วัน')}</div></div>
+      <div class="fgrid c3">${n('rate1', 'วันที่ 1 – (Tier 2 − 1) / วัน')}${n('rate2', 'อัตรา Tier 2 / วัน')}${n('rate3', 'อัตรา Tier 3 / วัน')}${n('t2Start', 'Tier 2 เริ่มวันที่')}${n('t3Start', 'Tier 3 เริ่มวันที่')}${n('type2Bonus', 'แบบ 2 บวกเพิ่ม Guarantee (%)', 0.1)}${n('rate4', 'แบบ 4 อัตราคงที่ / วัน')}${n('partialGuar', 'วัน “ประกัน 1,200” — ยอดประกันของวันนั้น (บาท)')}</div></div>
     <div class="group"><h4><i data-lucide="trending-up"></i>Tier Top-up จาก Earned DF (%)</h4>
       <div class="fgrid c4">${n('top1', 'Tier 1', 0.1)}${n('top2', 'Tier 2', 0.1)}${n('top3', 'Tier 3', 0.1)}${n('top4', 'Tier 4 (แบบ 3)', 0.1)}</div></div>
     <div class="group"><h4><i data-lucide="building-2"></i>ผู้ดำเนินการสาขา (แบบ 3) และค่าเริ่มต้น</h4>
@@ -1449,6 +1466,22 @@ function pdfMeta(rows) {
 let IMP = null; // import context
 async function handleFiles(files, kind, target = 'calc') {
   files = [...files]; if (!files.length) return;
+  const impSum = [];
+  try { await handleFilesLoop(files, kind, target, impSum); } finally { if (impSum.length) portalImportSummary(impSum); }
+}
+function portalImportSummary(list) {
+  const tot = list.reduce((a, x) => a + x.n, 0);
+  if (tot) ptDirty();
+  renderPortal();
+  openModal(`${mHead('นำเข้าไฟล์เวรแพทย์', `${list.length} ไฟล์ · เพิ่มวันเข้างาน ${tot} รายการ · งวด ${periodShort(PT.period)}`, '<i data-lucide="file-check-2" style="width:19px;height:19px"></i>')}
+    <div class="m-body"><div style="border:1px solid var(--line);border-radius:14px;overflow:auto"><table class="daily"><thead><tr><th>ไฟล์</th><th>แพทย์</th><th class="r">วันที่นำเข้า</th><th>หมายเหตุ</th></tr></thead><tbody>
+    ${list.map(x => `<tr><td style="max-width:220px;overflow:hidden;text-overflow:ellipsis">${esc(x.file)}</td><td style="white-space:normal">${x.docs.map(esc).join(', ') || '—'}</td><td class="r num"><b>${x.n}</b></td>
+      <td>${x.n ? (x.skipped ? `<span class="muted">ข้าม ${x.skipped} แถว (ขาด/ลา/ว่าง)</span>` : '<span class="badge b-ok">ครบ</span>') : `<span class="badge b-warn">ไม่พบวันของงวดนี้${x.other ? ` (ไฟล์เป็นงวด ${esc(periodShort(x.other))})` : ''}</span>`}</td></tr>`).join('')}
+    </tbody></table></div>
+    <div class="group mt-4" style="background:#F5F9FF;border-color:#DCE8FB;margin-bottom:0;font-size:13px">วันที่นำเข้าจะเป็น <b>“ได้ประกันเต็มวัน”</b> ทั้งหมด — ถ้ามีวันที่เป็น “ประกัน 1,200” หรือ “ไม่ได้ประกัน” (และในไฟล์ไม่ได้ระบุไว้ในหมายเหตุ) ให้ <b>คลิกขวาที่ช่องวัน</b> ในตาราง หรือใช้ปุ่ม <b>“กำหนดวันและสิทธิ์ประกันด่วน”</b> · ตรวจ<b>กลุ่มแพทย์</b> (ทั่วไป / ผู้ดำเนินการ / RDM) ที่การ์ดของแพทย์แต่ละท่าน</div></div>
+    <div class="m-foot">${list.some(x => !x.n && x.other) ? `<button class="btn btn-ghost" style="margin-right:auto" onclick="closeModal();ptPeriod('${list.find(x => !x.n && x.other).other}')">เปลี่ยนเป็นงวด ${esc(periodShort(list.find(x => !x.n && x.other).other))}</button>` : ''}<button class="btn btn-primary" onclick="closeModal()">เรียบร้อย</button></div>`, 'md');
+}
+async function handleFilesLoop(files, kind, target, impSum) {
   for (const [fi, f] of files.entries()) {
     try {
       const data = await readAny(f);
@@ -1469,6 +1502,15 @@ async function handleFiles(files, kind, target = 'calc') {
       });
       IMP = { kind, target, fileName: f.name, sheets: data.sheets, sheet, pdf: !!data.pdf, meta: data.meta || {}, append: fi > 0 };
       initSheet();
+      if (target === 'portal') { // สาขา: นำเข้าอัตโนมัติถ้าระบบจับคู่คอลัมน์ได้ครบ ไม่ต้องตั้งค่าเอง
+        const { out, skipped } = extract();
+        if (rolesFor().every(([r, req]) => !req || IMP.map[r] >= 0) && out.length) {
+          const inP = out.filter(o => o.date && o.date.startsWith(PT.period));
+          const n = mergePortal(out);
+          impSum.push({ file: f.name, n, docs: [...new Set(inP.map(o => o.name))], skipped, other: modeMonth(out.map(o => o.date).filter(Boolean)) });
+          continue;
+        }
+      }
       await new Promise(res => { IMP._done = res; renderImport(); });
     } catch (e) { console.error(e); toast(`อ่านไฟล์ ${f.name} ไม่สำเร็จ`, 'alert-circle'); }
   }
@@ -1526,7 +1568,8 @@ function extract() {
       const tin = fmtTime(cell(r, 'tin')), tout = fmtTime(cell(r, 'tout'));
       if (tin === '00:00' && tout === '00:00') { skipped++; continue; }
       const note = cleanName(cell(r, 'note'));
-      out.push({ ...base, date, tin, tout, note: note === '0' ? '' : note });
+      const nt = note === '0' ? '' : note, gm = nt.match(/ประกัน\s*([\d,]{3,})/);
+      out.push({ ...base, date, tin, tout, note: nt, ...(/ไม่(ได้)?\s*ประกัน|no\s*g/i.test(nt) ? { g: 'n' } : gm ? { g: 'h', ga: +gm[1].replace(/,/g, '') } : {}) });
     } else if (IMP.mode === 'count') {
       const days = parseNum(cell(r, 'days')); if (days == null) { skipped++; continue; }
       out.push({ ...base, date: null, days });
@@ -1802,7 +1845,7 @@ function slipHTML(r, idx) {
   });
   if (r.dfNoDate) rowsHtml += `<tr><td>—</td><td colspan="3">DF ที่ไม่ระบุวันที่</td>${S.feeDeduct ? '<td></td>' : ''}<td class="r">${fmt(r.dfNoDate)}</td><td></td><td></td></tr>`;
   if (!rowsHtml) rowsHtml = `<tr><td colspan="8" style="text-align:center;color:#86868B;padding:10px">ไม่มีข้อมูลรายวัน — วันเข้างาน ${r.days} วัน (${r.source === 'manual' ? 'ระบุด้วยมือ' : 'จากตารางเวร'})</td></tr>`;
-  const gNote = r.gHalf || r.gNone ? ` · ครึ่งวัน ${r.gHalf} / ไม่ได้ประกัน ${r.gNone} วัน` : '';
+  const gNote = r.gHalf || r.gNone ? ` · ${pgaTxt()} ${r.gHalf} วัน / ไม่ได้ประกัน ${r.gNone} วัน` : '';
   const gText = r.type === 5 ? `ค่าตอบแทนตามสัญญา RDM (${fmt(r.base)} ต่อเดือน)` : gNote ? `เงินประกัน (ปรับตามสิทธิ์รายวัน${gNote})` : r.type === 4 ? `เงินประกันอัตราคงที่ ${fmt0(S.rate4)} × ${r.days} วัน` : r.type === 3 ? `เงินประกันตามสัญญา ${fmt(r.base)} × (${r.days}/${r.sched} วัน)` : r.type === 2 ? `เงินประกันขั้นบันได +${S.type2Bonus}% (${stepFormula(r.days, S)}) × ${(1 + S.type2Bonus / 100).toFixed(2)}` : `เงินประกันขั้นบันได (${stepFormula(r.days, S)})`;
   let i = 0; const L = (t, v, note = '') => `<tr><td>${++i}</td><td>${t}</td><td class="r">${v}</td><td style="color:#86868B">${note}</td></tr>`;
   return `<div class="slip">
@@ -2217,7 +2260,7 @@ function pullToCalc() {
     const br = canonBranch(s.branchName || branchName(s.branchId));
     (s.doctors || []).forEach(d => {
       const k = nkey(d.name), days = (s.days || {})[d.name] || {};
-      Object.keys(days).forEach(dd => roster.push({ name: d.name, key: k, code: d.code || '', branch: br, date: `${s.period}-${dd}`, ...(days[dd] && days[dd].g ? { g: days[dd].g } : {}) }));
+      Object.keys(days).forEach(dd => roster.push({ name: d.name, key: k, code: d.code || '', branch: br, date: `${s.period}-${dd}`, ...(days[dd] && days[dd].g ? { g: days[dd].g, ...(days[dd].ga ? { ga: days[dd].ga } : {}) } : {}) }));
       (sign[k] = sign[k] || []).push({ branch: br, signed: signedOf(s, d.name), status: s.status });
       const p = profile(k, d.name); if (d.code && !p.code) p.code = d.code;
       const grp = d.group || 'general';
@@ -2512,7 +2555,7 @@ function ptDayEditor(ri) {
       ${Array.from({ length: n }, (_, i) => i + 1).map(d => { const k = pad(d), x = days[k], w = new Date(y, m - 1, d).getDay();
         return `<tr data-d="${k}" style="${[0, 6].includes(w) ? 'background:#FAFAFC' : ''}"><td><input type="checkbox" data-f="on" ${x ? 'checked' : ''} ${ed ? '' : 'disabled'}></td><td>${thDate(`${PT.period}-${k}`)} <span class="muted">(${weekdayTH(`${PT.period}-${k}`)})</span></td>
           <td><input class="input" style="height:30px" type="time" data-f="i" value="${esc(x?.i || '')}" ${ed ? '' : 'disabled'}></td><td><input class="input" style="height:30px" type="time" data-f="o" value="${esc(x?.o || '')}" ${ed ? '' : 'disabled'}></td>
-          <td><input class="input" style="height:30px;min-width:160px" data-f="n" value="${esc(x?.n || '')}" maxlength="100" placeholder="เช่น ประกัน 1200, ครึ่งวัน" ${ed ? '' : 'disabled'}></td></tr>`; }).join('')}
+          <td><input class="input" style="height:30px;min-width:160px" data-f="n" value="${esc(x?.n || '')}" maxlength="100" placeholder="เช่น ติดธุระ มาช่วงบ่าย" ${ed ? '' : 'disabled'}></td></tr>`; }).join('')}
       </tbody></table></div></div>
     <div class="m-foot"><button class="btn btn-ghost" onclick="closeModal()">${ed ? 'ยกเลิก' : 'ปิด'}</button>${ed ? `<button class="btn btn-primary" onclick="ptDayEditorOk(${ri})">บันทึก</button>` : ''}</div>`, 'md');
 }
@@ -2531,7 +2574,7 @@ function mergePortal(out) {
     if (!o.date || !o.date.startsWith(PT.period)) return;
     let doc = PT.data.doctors.find(d => nkey(d.name) === o.key);
     if (!doc) { doc = { name: o.name, code: o.code || '', group: 'general' }; PT.data.doctors.push(doc); }
-    const x = {}; if (o.tin) x.i = o.tin; if (o.tout) x.o = o.tout; if (o.note) x.n = o.note;
+    const x = {}; if (o.tin) x.i = o.tin; if (o.tout) x.o = o.tout; if (o.note) x.n = o.note; if (o.g) x.g = o.g; if (o.ga) x.ga = o.ga;
     ptDaysOf(doc.name)[o.date.slice(8, 10)] = x; n++;
   });
   return n;
@@ -2906,17 +2949,23 @@ function renderPortal() {
     </div>
     <section class="card mb-8" style="overflow:hidden;border-radius:24px">
       <div class="toolbar">
-        ${ed ? `<button class="btn btn-navy2 btn-sm" style="height:36px" onclick="ptQuick(0)" ${docs.length ? '' : 'disabled'}><i data-lucide="calendar-range"></i>กำหนดวันและสิทธิ์ประกันด่วน</button>
+        ${ed ? `<button class="btn btn-navy2 btn-sm" style="height:36px" onclick="ptQuick(${docs.length ? 0 : -1})"><i data-lucide="calendar-range"></i>กำหนดวันและสิทธิ์ประกันด่วน</button>
         <label class="btn btn-tonal btn-sm" style="height:36px"><i data-lucide="file-up"></i>นำเข้าจาก Excel / PDF<input type="file" hidden multiple accept=".xlsx,.xls,.csv,.pdf" onchange="handleFiles(this.files,'roster','portal');this.value=''"></label>
         <button class="btn btn-tonal btn-sm" style="height:36px" onclick="ptAddDoctor()"><i data-lucide="user-plus"></i>เพิ่มแพทย์</button>
         ${!docs.length && PT.prevDoctors.length ? `<button class="btn btn-ghost btn-sm" onclick="ptUsePrev()"><i data-lucide="history"></i>ใช้รายชื่อแพทย์เดือนก่อน (${PT.prevDoctors.length})</button>` : ''}` : `<span class="badge b-gray"><i data-lucide="lock"></i>แก้ไขวันเข้างานไม่ได้หลังส่งแล้ว</span>`}
         <button class="btn btn-tonal btn-sm" style="height:36px" onclick="ptPrintAll()" ${docs.length ? '' : 'disabled'}><i data-lucide="printer"></i>พิมพ์ตารางรวม</button>
         <div class="spacer"></div>
-        <div class="legend"><span><i style="background:#0058B0;border-radius:99px"></i>ได้ประกัน (100%)</span><span><i style="background:#F2700F;border-radius:99px"></i>ประกันครึ่งวัน (50%)</span><span><i style="background:#fff;border:1.5px solid #8E9BB3;border-radius:99px"></i>ไม่ได้ประกัน (DF จริง)</span><span><i style="background:#FF9F0A;border-radius:99px;width:8px;height:8px"></i>มีหมายเหตุ</span></div>
+        <div class="legend"><span><i style="background:#0058B0;border-radius:99px"></i>ได้ประกัน (100%)</span><span><i style="background:#F2700F;border-radius:99px"></i>${pgaTxt()} บาท</span><span><i style="background:#fff;border:1.5px solid #8E9BB3;border-radius:99px"></i>ไม่ได้ประกัน (DF จริง)</span><span><i style="background:#FF9F0A;border-radius:99px;width:8px;height:8px"></i>มีหมายเหตุ</span></div>
       </div>
       ${ed && docs.length ? `<div class="flex items-center gap-3 flex-wrap" style="margin:14px 20px 0;padding:10px 14px;border-radius:14px;background:#F3F8FF;border:1px solid #DCE8FB;font-size:12.5px;color:#0058B0">
-        <i data-lucide="user-check" style="width:16px;height:16px"></i><span style="flex:1"><b>ระบบสิทธิ์ประกันรายวัน:</b> คลิกช่องวันเพื่อเพิ่ม/ลบวันเวร · <b>คลิกขวา</b> (หรือกดค้างบนมือถือ) เพื่อกำหนดสิทธิ์ ได้ประกัน / ครึ่งวัน / ไม่ได้ประกัน และใส่หมายเหตุถึงฝ่ายบัญชี</span><span class="muted">${docs.length} แพทย์ · ${totalDays} วัน · รอบเดือน ${nDays} วัน</span></div>` : ''}
-      ${docs.length ? `<div class="cal-wrap mt-3" id="ptCalWrap">${calHTML()}</div>` : `<div class="empty"><div class="em-ico"><i data-lucide="user-plus"></i></div><div style="font-weight:500;color:var(--ink);font-size:15px">ยังไม่มีรายชื่อแพทย์</div><div class="mt-1">กด “เพิ่มแพทย์” หรือ “นำเข้าจาก Excel / PDF”</div></div>`}
+        <i data-lucide="user-check" style="width:16px;height:16px"></i><span style="flex:1"><b>ระบบสิทธิ์ประกันรายวัน:</b> คลิกช่องวันเพื่อเพิ่ม/ลบวันเวร · <b>คลิกขวา</b> (หรือกดค้างบนมือถือ) เพื่อกำหนดสิทธิ์ ได้ประกัน / ${pgaTxt()} / ไม่ได้ประกัน และใส่หมายเหตุถึงฝ่ายบัญชี</span><span class="muted">${docs.length} แพทย์ · ${totalDays} วัน · รอบเดือน ${nDays} วัน</span></div>` : ''}
+      ${docs.length ? `<div class="cal-wrap mt-3" id="ptCalWrap">${calHTML()}</div>` : ed ? `<div class="pt-empty">
+        <label class="pt-drop" id="ptDrop"><input type="file" multiple accept=".xlsx,.xls,.csv,.pdf" onchange="handleFiles(this.files,'roster','portal');this.value=''">
+          <span class="ic"><i data-lucide="file-up"></i></span><b>อัปโหลดไฟล์เวรแพทย์</b><span>ลากไฟล์มาวาง หรือคลิกเพื่อเลือก · Excel / CSV / PDF (เลือกได้หลายไฟล์)</span>
+          <span style="font-size:11.5px">เช่น ไฟล์กรอกข้อมูลเข้างานของสาขา หรือ PDF ใบสรุปการเข้าปฏิบัติงานรายคน — ระบบอ่านชื่อแพทย์และวันที่ให้อัตโนมัติ</span></label>
+        <button class="pt-act" onclick="ptQuick(-1)"><span class="ic"><i data-lucide="calendar-range"></i></span><b>กรอกวันและสิทธิ์ประกันเอง</b><span>เพิ่มแพทย์ แล้วคลิกเลือกวันที่มาทำงาน พร้อมกำหนดว่าได้ประกัน / ${pgaTxt()} / ไม่ได้ประกัน</span></button>
+        <button class="pt-act" onclick="${PT.prevDoctors.length ? 'ptUsePrev()' : 'ptAddDoctor()'}"><span class="ic"><i data-lucide="${PT.prevDoctors.length ? 'history' : 'user-plus'}"></i></span><b>${PT.prevDoctors.length ? `ใช้รายชื่อแพทย์เดือนก่อน (${PT.prevDoctors.length})` : 'เพิ่มรายชื่อแพทย์'}</b><span>${PT.prevDoctors.length ? 'ดึงรายชื่อและกลุ่มแพทย์จากงวดก่อน แล้วคลิกเลือกวันในตาราง' : 'เพิ่มชื่อ รหัส และกลุ่มแพทย์ แล้วคลิกเลือกวันในตาราง'}</span></button>
+      </div>` : `<div class="empty"><div class="em-ico"><i data-lucide="user-plus"></i></div>ยังไม่มีรายชื่อแพทย์</div>`}
     </section>
     ${docs.length || PT.df ? ptDfSection() : ''}
     ${docs.length ? `<div class="flex items-end justify-between gap-4 mb-4 flex-wrap"><div><h2 class="page-title" style="font-size:24px">ใบสรุปเวรและการเซ็นรับรองของแพทย์</h2><p class="page-sub">พิมพ์ใบสรุปเวรรายบุคคลเพื่อให้แพทย์ตรวจสอบความถูกต้องและลงนามรับรอง ก่อนส่งอนุมัติงวด</p></div>
@@ -2924,6 +2973,12 @@ function renderPortal() {
       <div class="sgrid" id="ptSign">${signGridHTML()}</div>` : ''}
     <div class="helpbar"><i data-lucide="circle-help" style="width:20px;height:20px;color:#0058B0"></i><div style="flex:1"><b style="font-size:14px">มีข้อสงสัยเกี่ยวกับการปิดเศษเวลา หรือเคสผ่าตัดพิเศษ?</b><div class="muted" style="font-size:12.5px">ใส่หมายเหตุในช่องวันนั้น (คลิกขวา) หรือติดต่อฝ่ายบัญชีส่วนกลาง</div></div></div>`;
   icons(); ptBindCal();
+  const dz = $('#ptDrop');
+  if (dz) {
+    ['dragenter', 'dragover'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.add('drag'); }));
+    ['dragleave', 'drop'].forEach(ev => dz.addEventListener(ev, e => { e.preventDefault(); dz.classList.remove('drag'); }));
+    dz.addEventListener('drop', e => handleFiles(e.dataTransfer.files, 'roster', 'portal'));
+  }
 }
 const ptGroup = doc => PT.df?.groups?.[doc.name] || doc.group || 'general';
 function ptSetGroup(i, g) {
@@ -2987,11 +3042,11 @@ function calRowHTML(ri, n, wd) {
   const h = vals.filter(x => x.g === 'h').length, ng = vals.filter(x => x.g === 'n').length, full = vals.length - h - ng;
   return `<tr data-r="${ri}"><td class="doc"><div class="dn"><b title="${esc(doc.name)}">${esc(doc.name)}</b>
       ${ed ? `<button class="icon-btn" title="กำหนดวันและสิทธิ์ประกัน" onclick="ptQuick(${ri})"><i data-lucide="calendar-cog"></i></button><button class="icon-btn" title="ลบแพทย์" onclick="ptRemoveDoctor(${ri})"><i data-lucide="x"></i></button>` : `<button class="icon-btn" title="ดูเวลา / หมายเหตุ" onclick="ptDayEditor(${ri})"><i data-lucide="clock"></i></button>`}</div>
-      <small>${esc(doc.code || 'ไม่มีรหัส')} · <span style="color:${ptGroup(doc) === 'rdm' ? 'var(--red-ink)' : ptGroup(doc) === 'operating' ? '#3A3FB5' : '#0058B0'}">${ptGroup(doc) === 'rdm' ? '🔒 ' : ''}${GROUPS[ptGroup(doc)].t}</span></small>${h || ng ? `<span class="gsub">ประกัน: ${full} วัน · 50%: ${h} วัน · No G: ${ng} วัน</span>` : ''}</td>
+      <small>${esc(doc.code || 'ไม่มีรหัส')} · <span style="color:${ptGroup(doc) === 'rdm' ? 'var(--red-ink)' : ptGroup(doc) === 'operating' ? '#3A3FB5' : '#0058B0'}">${ptGroup(doc) === 'rdm' ? '🔒 ' : ''}${GROUPS[ptGroup(doc)].t}</span></small>${h || ng ? `<span class="gsub">ได้ประกัน ${full} · ${pgaTxt()}: ${h} · ไม่ได้ประกัน: ${ng} วัน</span>` : ''}</td>
     ${Array.from({ length: n }, (_, i) => i + 1).map(d => { const x = days[pad(d)];
       const cls = x ? `on ${x.g === 'h' ? 'half' : x.g === 'n' ? 'nog' : ''} ${x.n || (x.i && x.i !== DEFAULT_SHIFT[0]) || (x.o && x.o !== DEFAULT_SHIFT[1]) ? 'nt' : ''}` : '';
-      return `<td class="cc ${cls} ${[0, 6].includes(wd(d)) ? 'we' : ''}" data-d="${d}" title="${x ? (x.g === 'h' ? 'ประกันครึ่งวัน' : x.g === 'n' ? 'ไม่ได้ประกัน' : 'ได้ประกันเต็มวัน') + (x.n ? ' · ' + esc(x.n) : '') : ''}"><i></i></td>`; }).join('')}
-    <td class="tot num"><span class="totp">${vals.length}</span>${h || ng ? `<span class="totsub">50%: ${h} · DF: ${ng}</span>` : ''}</td></tr>`;
+      return `<td class="cc ${cls} ${[0, 6].includes(wd(d)) ? 'we' : ''}" data-d="${d}" title="${x ? (x.g === 'h' ? 'ประกัน ' + fmt0(x.ga || PGA()) : x.g === 'n' ? 'ไม่ได้ประกัน' : 'ได้ประกันเต็มวัน') + (x.n ? ' · ' + esc(x.n) : '') : ''}"><i></i></td>`; }).join('')}
+    <td class="tot num"><span class="totp">${vals.length}</span>${h || ng ? `<span class="totsub">${fmt0(PGA())}: ${h} · DF: ${ng}</span>` : ''}</td></tr>`;
 }
 function ptRedrawCal() {
   const w = $('#ptCalWrap'); if (!w) return renderPortal();
@@ -3022,9 +3077,9 @@ function ptPopOpen(td) {
   let pop = $('#ptPop'); if (!pop) { pop = document.createElement('div'); pop.id = 'ptPop'; document.body.appendChild(pop); }
   pop.innerHTML = `<div class="flex items-center gap-2"><span style="width:8px;height:8px;border-radius:99px;background:#F2700F"></span><b style="font-size:13.5px;flex:1">กำหนดสิทธิ์ประกัน - ${thDate(`${PT.period}-${d}`)}</b>${doc.code ? `<span class="badge b-gray">${esc(doc.code)}</span>` : ''}</div>
     <div class="muted" style="font-size:11.5px;margin-top:2px">${esc(doc.name)}</div>
-    ${[['f', '#0058B0', 'ได้ประกันเต็มวัน (100% G)'], ['h', '#F2700F', 'ประกันครึ่งวัน (50% Prorate)'], ['n', '#fff', 'ไม่ได้ประกัน (คิดเฉพาะ DF จริง)'], ['off', '#E5E5EA', 'ไม่มีเวร (ลบวันนี้)']].map(([v, c, l]) =>
+    ${[['f', '#0058B0', 'ได้ประกันเต็มวัน (100% G)'], ['h', '#F2700F', `${pgaTxt()} บาท (เฉพาะวันนั้น)`], ['n', '#fff', 'ไม่ได้ประกัน (คิดเฉพาะ DF จริง)'], ['off', '#E5E5EA', 'ไม่มีเวร (ลบวันนี้)']].map(([v, c, l]) =>
       `<label class="gopt ${cur === v ? 'sel' : ''}"><input type="radio" name="pg" value="${v}" ${cur === v ? 'checked' : ''} onchange="document.querySelectorAll('#ptPop .gopt').forEach(e=>e.classList.toggle('sel',e.contains(this)))"><span class="sw2" style="background:${c};${v === 'n' ? 'box-shadow:inset 0 0 0 1.5px #8E9BB3' : ''}"></span>${l}</label>`).join('')}
-    <div class="field mt-3"><label>ระบุหมายเหตุตรวจ</label><input class="input" id="ppNote" value="${esc(x?.n || '')}" maxlength="100" placeholder="เช่น หมอติดธุระส่วนตัว มาครึ่งวัน"></div>
+    <div class="field mt-3"><label>ระบุหมายเหตุตรวจ</label><input class="input" id="ppNote" value="${esc(x?.n || '')}" maxlength="100" placeholder="เช่น หมอติดธุระส่วนตัว มาช่วงบ่าย"></div>
     <div class="flex justify-end gap-2 mt-3"><button class="btn btn-tonal btn-sm" onclick="ptPopClose()">ยกเลิก</button><button class="btn btn-navy2 btn-sm" onclick="ptPopSave(${ri},'${d}')"><i data-lucide="check"></i>บันทึกสิทธิ์วันนี้</button></div>`;
   const r = td.getBoundingClientRect();
   let top = r.bottom + 8; if (top + 380 > innerHeight) top = Math.max(10, r.top - 388);
@@ -3037,28 +3092,35 @@ function ptPopSave(ri, d) {
   const v = document.querySelector('#ptPop input[name=pg]:checked')?.value || 'f', note = $('#ppNote').value.trim();
   const days = ptDaysOf(PT.data.doctors[ri].name);
   if (v === 'off') delete days[d];
-  else { const x = { ...(days[d] || {}) }; delete x.g; if (v === 'h' || v === 'n') x.g = v; if (note) x.n = note; else delete x.n; days[d] = x; }
+  else { const x = { ...(days[d] || {}) }; delete x.g; if (v !== 'h') delete x.ga; if (v === 'h' || v === 'n') x.g = v; if (note) x.n = note; else delete x.n; days[d] = x; }
   ptPopClose(); ptRedrawCal(); ptDirty();
 }
 
 /* ---------- Direct entry modal (กำหนดวันและสิทธิ์ประกันด่วน) ---------- */
 const QE = { ri: 0, sel: new Set(), g: 'keep', shift: 'keep' };
 function ptQuick(ri) {
-  if (!PT.data.doctors.length) return;
-  QE.ri = ri; QE.sel = new Set(Object.keys(ptDaysOf(PT.data.doctors[ri].name))); QE.g = 'keep'; QE.shift = 'keep';
+  if (!ptEditable()) { toast('ส่งข้อมูลแล้ว แก้ไขไม่ได้', 'lock'); return; }
+  if (ri >= 0 && !PT.data.doctors[ri]) ri = -1;
+  QE.ri = ri; QE.sel = new Set(ri >= 0 ? Object.keys(ptDaysOf(PT.data.doctors[ri].name)) : []); QE.g = ri >= 0 ? 'keep' : 'f'; QE.shift = 'keep';
+  QE.nw = { name: '', code: '', group: 'general' };
   openModal(`${mHead('✍️ กรอกวันเข้าเวรแพทย์โดยตรง (Direct Entry)', `สาขา${esc(ptBranch().name)} (${esc(PT.branchId)}) · ประจำงวด ${periodShort(PT.period)}`, '<i data-lucide="calendar-range" style="width:19px;height:19px"></i>')}<div class="m-body" id="qeBody"></div>
     <div class="m-foot"><button class="btn btn-text btn-sm" style="margin-right:auto" onclick="ptQuickSave(true)"><i data-lucide="clock"></i>แก้เวลา / หมายเหตุรายวัน</button><button class="btn btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn btn-navy2" onclick="ptQuickSave()"><i data-lucide="check"></i>บันทึก</button></div>`, 'md');
   qeRender();
 }
 function qeRender() {
   const [y, m] = PT.period.split('-').map(Number), n = new Date(y, m, 0).getDate(), first = new Date(y, m - 1, 1).getDay();
-  const doc = PT.data.doctors[QE.ri], old = ptDaysOf(doc.name), oldN = Object.keys(old).length;
+  const isNew = QE.ri < 0, doc = isNew ? null : PT.data.doctors[QE.ri], old = isNew ? {} : ptDaysOf(doc.name), oldN = Object.keys(old).length;
   const hasSpecial = Object.values(old).some(x => x.g);
   const gOf = dd => QE.g === 'keep' ? (old[dd]?.g || '') : QE.g === 'f' ? '' : QE.g;
   const sel = [...QE.sel].map(Number).sort((a, b) => a - b);
   $('#qeBody').innerHTML = `
     <div class="flex justify-between items-center mb-2"><label class="eyebrow">เลือกทันตแพทย์และแผนก:</label><span class="badge b-info">ปัจจุบันบันทึกไว้ ${oldN} วัน</span></div>
-    <select class="select mb-4" onchange="ptQuickSave(false,true);ptQuick(+this.value)">${PT.data.doctors.map((d, i) => `<option value="${i}" ${i === QE.ri ? 'selected' : ''}>${esc(d.name)}${d.code ? ` (${esc(d.code)})` : ''}</option>`).join('')}</select>
+    <select class="select mb-3" onchange="ptQuickSave(false,true);ptQuick(+this.value)">${PT.data.doctors.map((d, i) => `<option value="${i}" ${i === QE.ri ? 'selected' : ''}>${esc(d.name)}${d.code ? ` (${esc(d.code)})` : ''} · ${GROUPS[ptGroup(d)].t}</option>`).join('')}<option value="-1" ${isNew ? 'selected' : ''}>➕ เพิ่มแพทย์ใหม่…</option></select>
+    ${isNew ? `<div class="group mb-4" style="background:#F5F9FF;border-color:#DCE8FB"><h4><i data-lucide="user-plus"></i>ข้อมูลแพทย์ใหม่</h4><div class="fgrid">
+      <div class="field" style="grid-column:1/-1"><label>ชื่อ-นามสกุล ทันตแพทย์ *</label><input class="input" id="qeName" value="${esc(QE.nw.name)}" oninput="QE.nw.name=this.value" placeholder="เช่น ทพ.สมชาย ใจดี"></div>
+      <div class="field"><label>รหัสแพทย์ (ถ้ามี)</label><input class="input" id="qeCode" value="${esc(QE.nw.code)}" oninput="QE.nw.code=this.value" placeholder="DT00000"></div>
+      <div class="field"><label>กลุ่มแพทย์ *</label><select class="select" onchange="QE.nw.group=this.value;qeRender()">${groupOptions(QE.nw.group)}</select></div></div>
+      ${QE.nw.group === 'rdm' ? '<div class="muted mt-2" style="font-size:12px">🔒 RDM: สาขาส่งเฉพาะวันทำงาน ยอดค่าตอบแทนเป็นความลับ</div>' : ''}</div>` : '<div class="mb-1"></div>'}
     <div class="flex justify-between items-center mb-2"><label class="eyebrow">ตัวช่วยเลือกวันแบบด่วน (Quick Presets):</label><span class="muted" style="font-size:12px;color:#0058B0">รอบเดือนนี้: ${n} วัน</span></div>
     <div class="presets mb-4">
       <button class="pchip" onclick="qePreset('wk')"><i data-lucide="briefcase"></i>จันทร์ – ศุกร์ (Mon–Fri)</button>
@@ -3074,7 +3136,7 @@ function qeRender() {
     <div class="group" style="background:#FAFBFD">
       <h4><i data-lucide="sliders-horizontal"></i>ตั้งค่าเงื่อนไขเวลา &amp; สิทธิ์ประกันรายวัน (Daily Guarantee &amp; Exceptions) <span class="badge b-info" style="margin-left:auto">ใช้กับวันที่เลือกทั้งหมด</span></h4>
       <label class="eyebrow">1. สิทธิ์การรับเงินประกันเวร (Daily Guarantee Status):</label>
-      <div class="gcards mt-2 mb-4">${[...(hasSpecial ? [['keep', 'คงสิทธิ์เดิมรายวัน', 'ไม่เปลี่ยนวันที่ตั้งไว้แล้ว']] : []), ['f', 'ได้ประกันเต็มวัน (100%)', 'ได้รับยอดการันตีตามสัญญาปกติ'], ['h', 'ประกันครึ่งวัน (50% Prorate)', 'เข้างานช่วงเดียว หรืออนุมัติพิเศษ'], ['n', 'ไม่ได้ประกัน (คิดตาม DF จริง)', 'ไม่การันตี / ลาฉุกเฉิน / จ่ายตามผลงาน']].map(([v, t, s]) => {
+      <div class="gcards mt-2 mb-4">${[...(hasSpecial ? [['keep', 'คงสิทธิ์เดิมรายวัน', 'ไม่เปลี่ยนวันที่ตั้งไว้แล้ว']] : []), ['f', 'ได้ประกัน', 'ได้รับยอดการันตีตามอัตราปกติ'], ['h', `${pgaTxt()} บาท`, 'ได้ประกันวันนั้นเป็นยอดตายตัว'], ['n', 'ไม่ได้ประกัน (คิดตาม DF จริง)', 'ไม่การันตี / ลาฉุกเฉิน / จ่ายตามผลงาน']].map(([v, t, s]) => {
         const on = QE.g === v || (QE.g === 'keep' && !hasSpecial && v === 'f');
         return `<label class="gcard ${on ? 'sel' : ''} ${v === 'n' ? 'r' : ''}"><input type="radio" name="qeg" ${on ? 'checked' : ''} onchange="QE.g='${v}';qeRender()"><span><b style="${v === 'n' ? 'color:var(--red-ink)' : on ? 'color:#0058B0' : ''}">${t}</b><small>${s}</small></span></label>`; }).join('')}</div>
       <label class="eyebrow">2. ช่วงเวลาเข้าเวร (Shift Time / Hours):</label>
@@ -3095,11 +3157,18 @@ function qeApplyRange() {
   QE.sel = s; qeRender(); toast(`เลือก ${s.size} วัน`, 'calendar-check');
 }
 function ptQuickSave(openTimes, silent) {
+  if (QE.ri < 0) {
+    const name = cleanName(QE.nw.name);
+    if (!validName(name)) { if (!silent) toast('กรุณาระบุชื่อแพทย์', 'alert-circle'); return; }
+    if (PT.data.doctors.some(d => nkey(d.name) === nkey(name))) { if (!silent) toast('มีแพทย์ชื่อนี้แล้ว — เลือกจากรายชื่อด้านบน', 'info'); return; }
+    PT.data.doctors.push({ name, code: cleanName(QE.nw.code), group: QE.nw.group || 'general' });
+    QE.ri = PT.data.doctors.length - 1;
+  }
   const doc = PT.data.doctors[QE.ri], old = ptDaysOf(doc.name), out = {};
   const SH = { full: DEFAULT_SHIFT, am: [DEFAULT_SHIFT[0], '15:00'], pm: ['15:00', DEFAULT_SHIFT[1]] };
   [...QE.sel].sort().forEach(dd => {
     const x = { ...(old[dd] || {}) };
-    if (QE.g !== 'keep') { delete x.g; if (QE.g === 'h' || QE.g === 'n') x.g = QE.g; }
+    if (QE.g !== 'keep') { delete x.g; delete x.ga; if (QE.g === 'h' || QE.g === 'n') x.g = QE.g; }
     if (SH[QE.shift]) { x.i = SH[QE.shift][0]; x.o = SH[QE.shift][1]; }
     out[dd] = x;
   });
@@ -3107,7 +3176,7 @@ function ptQuickSave(openTimes, silent) {
   PT.data.days[doc.name] = out;
   if (changed) ptDirty();
   if (silent) return;
-  closeModal(); ptRedrawCal(); if (changed) toast(`บันทึก ${Object.keys(out).length} วันของ ${doc.name} แล้ว`);
+  closeModal(); renderPortal(); toast(`บันทึก ${Object.keys(out).length} วันของ ${doc.name} แล้ว`);
   if (openTimes) setTimeout(() => ptDayEditor(QE.ri), 80);
 }
 
@@ -3120,8 +3189,8 @@ function signCardHTML(doc, i) {
   return `<div class="scard">
     <div class="top"><div class="flex gap-3" style="min-width:0"><span class="ava">${esc(avatarOf(doc.name))}</span><div style="min-width:0"><b>${esc(doc.name)}</b><div class="muted" style="font-size:12px">${esc(doc.code || 'ไม่มีรหัสแพทย์')}</div></div></div><span class="dpill">${n} วัน</span></div>
     <label class="flex items-center justify-between gap-2" style="font-size:12.5px"><span class="muted">กลุ่มแพทย์</span><select class="select" style="height:32px;width:auto;border-radius:99px;font-size:12.5px;font-weight:600" onchange="ptSetGroup(${i},this.value)" ${ptEditable() && !PT.df?.groups?.[doc.name] ? '' : 'disabled'}>${groupOptions(ptGroup(doc))}</select></label>
-    <div class="flex justify-between items-center"><span class="badge ${st.c}"><i data-lucide="${st.i}"></i>${st.t}</span><span class="muted" style="font-size:11.5px">${when ? 'ลงนามเมื่อ ' + fmtDT(when) : h || ng ? `ประกัน ${n - h - ng} วัน (${n ? Math.round((n - h - ng) / n * 100) : 0}%)` : ''}</span></div>
-    ${h || ng ? `<div class="gsplit"><div><span>● ได้ประกันเต็มวัน (100%)</span><b>${n - h - ng} วัน</b></div><div style="color:#C2410C"><span>● ประกันครึ่งวัน (50%)</span><b>${h} วัน</b></div><div class="muted"><span>○ ไม่ได้ประกัน (คิดตาม DF จริง)</span><b>${ng} วัน</b></div></div>` : ''}
+    <div class="flex justify-between items-center"><span class="badge ${st.c}"><i data-lucide="${st.i}"></i>${st.t}</span><span class="muted" style="font-size:11.5px">${when ? 'ลงนามเมื่อ ' + fmtDT(when) : h || ng ? `ได้ประกัน ${n - h - ng} / ${n} วัน` : ''}</span></div>
+    ${h || ng ? `<div class="gsplit"><div><span>● ได้ประกัน</span><b>${n - h - ng} วัน</b></div><div style="color:#C2410C"><span>● ${pgaTxt()} บาท</span><b>${h} วัน</b></div><div class="muted"><span>○ ไม่ได้ประกัน (คิดตาม DF จริง)</span><b>${ng} วัน</b></div></div>` : ''}
     ${g.file ? `<div class="frow"><i data-lucide="file-image" style="color:#0058B0"></i><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(g.fileName || 'signed.jpg')}</span><button class="icon-btn" style="width:28px;height:28px" title="ดูรูป" onclick="viewSignFile('${esc(g.file)}')"><i data-lucide="eye"></i></button></div>`
              : `<div class="frow empty"><i data-lucide="file-text"></i>ยังไม่ได้อัปโหลดใบลงนาม</div>`}
     <label class="tgl" style="font-size:13px"><span>แพทย์ตรวจสอบและอนุมัติแล้ว</span><input type="checkbox" ${g.approved ? 'checked' : ''} onchange="ptSign(${i},this.checked,this)"><span class="sw"></span></label>
@@ -3139,13 +3208,13 @@ function attHTML(o) {
   const rows = keys.map(dd => {
     const x = o.days[dd] || {}, dt = new Date(y, m - 1, +dd), w = dt.getDay();
     const time = x.i || x.o ? `${x.i || DEFAULT_SHIFT[0]} - ${x.o || DEFAULT_SHIFT[1]} น.` : `<span style="color:#A1A1A6">${DEFAULT_SHIFT.join(' - ')} น. (ตามเวร)</span>`;
-    return `<tr class="${[0, 6].includes(w) ? 'we' : ''}"><td>${thDate(`${o.period}-${dd}`)}</td><td>${WD_FULL[w]}</td><td class="ck">✓</td><td>${time}</td><td>${x.g === 'h' ? '<b style="color:#C2410C">ครึ่งวัน (50%)</b>' : x.g === 'n' ? '<b style="color:#86868B">ไม่ได้ประกัน</b>' : 'เต็มวัน'}</td><td>${esc(x.n || '-')}</td></tr>`;
+    return `<tr class="${[0, 6].includes(w) ? 'we' : ''}"><td>${thDate(`${o.period}-${dd}`)}</td><td>${WD_FULL[w]}</td><td class="ck">✓</td><td>${time}</td><td>${x.g === 'h' ? `<b style="color:#C2410C">ประกัน ${fmt0(x.ga || PGA())}</b>` : x.g === 'n' ? '<b style="color:#86868B">ไม่ได้ประกัน</b>' : 'ได้ประกัน'}</td><td>${esc(x.n || '-')}</td></tr>`;
   }).join('');
   return `<div class="slip att2">
     <div class="hd"><div class="lg"><i>ท</i><div><b>${esc(S.coName.replace('บริษัท ', 'บจก. ').replace(' จำกัด', ''))}</b><span style="font-size:10px;color:#0058B0">สาขา${esc(o.branch)} (รหัสหน่วยงาน #${esc(o.code)})</span><div style="font-size:10px;color:#A1A1A6">Dental Roster Verification Slip</div></div></div>
       <div class="no"><span>เลขที่: ${docNo}</span><div>งวดบัญชี: ${periodShort(o.period)}</div><div>พิมพ์เมื่อ: ${fmtDT(new Date().toISOString())} น.</div></div></div>
     <div class="sm"><div><label>ทันตแพทย์ผู้ปฏิบัติงาน</label><b style="font-size:14px">${esc(o.doc.name)}</b><div style="font-size:10px;color:#0058B0">${o.doc.code ? 'รหัส ' + esc(o.doc.code) : ''}</div></div>
-      <div><label>สถิติการปฏิบัติงาน</label><b class="big">${keys.length}</b> วัน <span style="color:#86868B;font-size:9.5px">(จาก ${n} วันในรอบ)</span><div style="font-size:9.5px;color:#1E7A3C">ประกันเต็มวัน ${keys.length - h - ng}${h ? ` · ครึ่งวัน ${h}` : ''}${ng ? ` · ไม่ได้ประกัน ${ng}` : ''}</div></div>
+      <div><label>สถิติการปฏิบัติงาน</label><b class="big">${keys.length}</b> วัน <span style="color:#86868B;font-size:9.5px">(จาก ${n} วันในรอบ)</span><div style="font-size:9.5px;color:#1E7A3C">ได้ประกัน ${keys.length - h - ng}${h ? ` · ${pgaTxt()} ${h}` : ''}${ng ? ` · ไม่ได้ประกัน ${ng}` : ''}</div></div>
       <div style="text-align:right"><label>สถานะเอกสาร</label><span class="st ${signed ? 'ok' : ''}">${signed ? '✓ แพทย์อนุมัติแล้ว' : '⊙ รอแพทย์ตรวจสอบและลงนาม'}</span></div></div>
     <div style="display:flex;justify-content:space-between;margin-bottom:6px"><b style="font-size:11.5px">ตารางบันทึกวันและเวลาเข้าเวรประจำงวด (1 - ${n} ${TH_MONTHS[m - 1]} ${y + 543})</b><span style="font-size:9px;color:#86868B">หน่วยเวลา: เวลาจริงตามบันทึกของสาขา</span></div>
     <table><thead><tr><th>วันที่</th><th>วัน</th><th style="text-align:center">การปฏิบัติงาน</th><th>เวลาเวรจริง</th><th>สิทธิ์ประกัน</th><th>หมายเหตุ</th></tr></thead><tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#86868B;padding:14px">ยังไม่มีวันเข้าปฏิบัติงาน</td></tr>'}</tbody></table>
