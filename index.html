@@ -2097,10 +2097,31 @@ function loadSample() {
 }
 function clearPeriod() {
   if (roBlock()) return;
-  if (!state.roster.length && !state.df.length) { toast('ไม่มีข้อมูลให้ล้าง', 'info'); return; }
-  state.roster = []; state.df = []; state.files = { roster: [], df: [] }; state.signInfo = null;
-  Object.entries(state.doctors).forEach(([k, p]) => { p.overrideDays = null; p.overrideDF = null; p.note = ''; if (p.manual) delete state.doctors[k]; });
-  renderAll(); toast('ล้างข้อมูลงวดแล้ว (ค่าตั้งของแพทย์ยังจำไว้)');
+  if (state.demo) { exitDemo(); return; }
+  const P = periodShort(state.period), online = accReady(), isAdm = FB.profile?.role === 'admin';
+  const local = state.roster.length || state.df.length;
+  if (!local && !online) { toast('ไม่มีข้อมูลให้ล้าง', 'info'); return; }
+  confirmBox(`ล้างข้อมูลงวด ${P}`, `<p style="margin:0 0 12px">เลือกข้อมูลที่ต้องการลบของงวด <b>${P}</b> · ค่าตั้งของแพทย์และสูตรคำนวณยังอยู่</p>
+    <div class="group" style="margin:0;display:flex;flex-direction:column;gap:10px">
+      <label class="tgl"><span style="font-size:13px">ข้อมูลคำนวณของฝ่ายบัญชี (ตารางเวร / Dentcloud / ค่าปรับปรุง)</span><input type="checkbox" id="clCalc" ${local ? 'checked' : ''}><span class="sw"></span></label>
+      ${online ? `<label class="tgl"><span style="font-size:13px">ยอด DF ที่เผยแพร่ให้สาขาแล้ว <span class="muted">(สาขาจะไม่เห็นยอดอีก)</span></span><input type="checkbox" id="clPub" checked><span class="sw"></span></label>` : ''}
+      ${online && isAdm ? `<label class="tgl"><span style="font-size:13px">วันทำงานและใบเซ็นที่สาขาส่งมา <span style="color:var(--red-ink)">(ใช้ลบข้อมูลทดสอบเท่านั้น)</span></span><input type="checkbox" id="clSub"><span class="sw"></span></label>` : ''}
+    </div><p class="muted" style="margin:10px 0 0;font-size:12px">ลบแล้วกู้คืนไม่ได้</p>`, 'ล้างข้อมูล', async () => {
+    const p = state.period, doCalc = $('#clCalc')?.checked, doPub = $('#clPub')?.checked, doSub = $('#clSub')?.checked;
+    const msg = [];
+    if (online && (doPub || doSub)) {
+      const del = async (col) => { const qs = await FB.db.collection(col).where('period', '==', p).get(); for (let i = 0; i < qs.docs.length; i += 400) { const b = FB.db.batch(); qs.docs.slice(i, i + 400).forEach(d => b.delete(FB.db.doc(col + '/' + d.id))); await b.commit(); } return qs.docs.length; };
+      if (doPub) msg.push(`ยกเลิกการเผยแพร่ ${await del('dfResults')} สาขา`);
+      if (doSub) { const n = await del('submissions'); await del('signFiles'); msg.push(`ลบข้อมูลที่สาขาส่ง ${n} สาขา`); }
+    }
+    if (doCalc) {
+      state.roster = []; state.df = []; state.files = { roster: [], df: [] }; state.signInfo = null; state.portalGroups = {}; state.aliases = {};
+      Object.entries(state.doctors).forEach(([k, p]) => { p.overrideDays = null; p.overrideDF = null; p.note = ''; if (p.manual) delete state.doctors[k]; });
+      msg.unshift('ล้างข้อมูลคำนวณ');
+    }
+    closeModal(); renderAll(); renderPeriodBar(); if (UI.view === 'track') renderTrack();
+    toast(msg.length ? msg.join(' · ') + ` (งวด ${P})` : 'ไม่ได้เลือกรายการ', msg.length ? 'check-circle-2' : 'info');
+  }, 'eraser');
 }
 
 /* =========================================================================
