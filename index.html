@@ -2925,8 +2925,14 @@ window.addEventListener('beforeunload', e => { if (PT.dirty || PT.saving) { e.pr
 
 function ptAddDoctor() {
   const names = [...new Set(PT.prevDoctors.map(d => d.name))].sort((a, b) => a.localeCompare(b, 'th'));
-  openModal(`${mHead('เพิ่มแพทย์', 'พิมพ์ชื่อ-นามสกุลทันตแพทย์', '<i data-lucide="user-plus" style="width:19px;height:19px"></i>')}
-    <div class="m-body"><div class="fgrid">
+  openModal(`${mHead('เพิ่มแพทย์', 'พิมพ์ชื่อทีละท่าน หรือนำเข้ารายชื่อแพทย์จากไฟล์', '<i data-lucide="user-plus" style="width:19px;height:19px"></i>')}
+    <div class="m-body">
+      <label class="group flex items-center gap-3" style="cursor:pointer;background:var(--blue-soft);border-color:transparent;margin-bottom:18px">
+        <i data-lucide="file-spreadsheet" style="width:22px;height:22px;color:var(--navy);flex:none"></i>
+        <div style="flex:1"><b style="font-size:13.5px">นำเข้ารายชื่อแพทย์จากไฟล์</b><div class="muted" style="font-size:12px">Excel / CSV ที่มีคอลัมน์ ชื่อ (และรหัสแพทย์ / สาขา) เช่น ไฟล์รายชื่อแพทย์จาก Dentcloud · ระบบเลือกเฉพาะแพทย์ของสาขานี้ให้</div></div>
+        <span class="btn btn-primary btn-sm"><i data-lucide="upload"></i>เลือกไฟล์</span>
+        <input type="file" accept=".xlsx,.xls,.csv,.txt" style="display:none" onchange="ptDocFile(this.files[0]);this.value=''"></label>
+      <div class="fgrid">
       <div class="field" style="grid-column:1/-1"><label>ชื่อ-นามสกุล ทันตแพทย์ *</label><input class="input" id="pdName" list="pdList" autocomplete="off" oninput="const m=PT.prevDoctors.find(x=>x.name===this.value);if(m&&m.code)$('#pdCode').value=m.code" onkeydown="if(event.key==='Enter')ptAddDoctorOk()">
         <datalist id="pdList">${names.map(n => `<option value="${esc(n)}">`).join('')}</datalist></div>
       <div class="field"><label>รหัสแพทย์ (ถ้ามี)</label><input class="input" id="pdCode" placeholder="DT00000"></div>
@@ -2934,6 +2940,70 @@ function ptAddDoctor() {
     </div></div>
     <div class="m-foot"><button class="btn btn-ghost" onclick="closeModal()">ยกเลิก</button><button class="btn btn-primary" onclick="ptAddDoctorOk()">เพิ่ม</button></div>`, 'md');
   setTimeout(() => $('#pdName')?.focus(), 60);
+}
+/* ---------- นำเข้ารายชื่อแพทย์จากไฟล์ (เช่น รายชื่อแพทย์จาก Dentcloud ที่มีคอลัมน์ “สาขาที่เป็นแพทย์”) ---------- */
+function brKeys(name) { const c = canonBranch(name); return [...new Set([name, c, ...(BRANCH_ALIAS[c] || [])].map(bnorm).filter(x => x && x.length >= 3))]; }
+function parseDoctorList(sheets) {
+  const out = [];
+  Object.values(sheets).forEach(rows => {
+    const hi = rows.findIndex(r => r && r.some(c => /ชื่อ|name/i.test(String(c ?? ''))) && r.some(c => /รหัส|code|สาขา|branch/i.test(String(c ?? ''))));
+    if (hi < 0) return;
+    const H = rows[hi].map(c => String(c ?? '').trim());
+    const col = re => H.findIndex(h => re.test(h));
+    const cN = col(/^(ชื่อ|ชื่อแพทย์|ชื่อ-?นามสกุล|ชื่อทันตแพทย์|name|doctor)/i), cC = col(/รหัส|code/i), cB = col(/สาขา|branch/i), cL = col(/นามสกุล|last/i);
+    if (cN < 0) return;
+    rows.slice(hi + 1).forEach(r => {
+      if (!r) return;
+      let name = cleanName(r[cN]); if (cL >= 0 && cL !== cN && r[cL]) name = cleanName(name + ' ' + r[cL]);
+      if (!validName(name) || /click to|sort/i.test(name)) return;
+      out.push({ name, code: cC >= 0 ? String(r[cC] ?? '').trim() : '', branches: cB >= 0 ? String(r[cB] ?? '') : '' });
+    });
+  });
+  const seen = new Set(); return out.filter(d => { const k = nkey(d.name); if (seen.has(k)) return false; seen.add(k); return true; });
+}
+async function ptDocFile(file) {
+  if (!file) return;
+  try {
+    const list = parseDoctorList((await readAny(file)).sheets);
+    if (!list.length) { toast('ไม่พบคอลัมน์ชื่อแพทย์ในไฟล์', 'alert-circle'); return; }
+    const keys = brKeys(ptBranch().name), hasBr = list.some(d => d.branches);
+    const have = new Set(PT.data.doctors.map(d => nkey(d.name)));
+    list.forEach(d => { d.mine = !hasBr || keys.some(k => bnorm(d.branches).includes(k)); d.have = have.has(nkey(d.name)); });
+    window._docImp = { list, file: file.name, all: !list.some(d => d.mine) };
+    ptDocImpRender();
+  } catch (e) { console.error(e); toast('อ่านไฟล์ไม่สำเร็จ: ' + e.message, 'alert-circle'); }
+}
+function ptDocImpRender() {
+  const X = window._docImp, mine = X.list.filter(d => d.mine).length;
+  const rows = X.list.map((d, i) => ({ d, i })).filter(({ d }) => X.all || d.mine);
+  const prevG = Object.fromEntries((PT.prevDoctors || []).map(d => [nkey(d.name), d.group]));
+  openModal(`${mHead('นำเข้ารายชื่อแพทย์', `${esc(X.file)} · พบแพทย์ของสาขา${esc(ptBranch().name)} ${mine} ท่าน จากทั้งหมด ${X.list.length} ท่าน`, '<i data-lucide="file-spreadsheet" style="width:19px;height:19px"></i>')}
+    <div class="m-body">
+      <div class="flex items-center gap-3 mb-3 flex-wrap">
+        <label class="tgl"><span style="font-size:13px">แสดงแพทย์ทุกสาขาในไฟล์ <span class="muted">(เช่น แพทย์ที่มาช่วยตรวจ)</span></span><input type="checkbox" ${X.all ? 'checked' : ''} onchange="window._docImp.all=this.checked;ptDocImpRender()"><span class="sw"></span></label>
+        <div class="spacer"></div>
+        <button class="btn btn-text btn-sm" onclick="document.querySelectorAll('#diTbl input[type=checkbox]:not(:disabled)').forEach(c=>c.checked=true)">เลือกทั้งหมด</button>
+        <button class="btn btn-text btn-sm" onclick="document.querySelectorAll('#diTbl input[type=checkbox]:not(:disabled)').forEach(c=>c.checked=false)">ไม่เลือก</button>
+      </div>
+      <div style="max-height:52vh;overflow:auto;border:1px solid var(--line);border-radius:14px"><table class="daily" id="diTbl"><thead><tr><th style="width:40px"></th><th>ทันตแพทย์</th><th>รหัส</th><th>กลุ่มแพทย์</th>${X.all ? '<th>สาขาในไฟล์</th>' : ''}</tr></thead><tbody>
+      ${rows.map(({ d, i }) => `<tr data-i="${i}"><td><input type="checkbox" ${d.have ? 'disabled' : d.mine ? 'checked' : ''}></td>
+        <td><b style="font-weight:500">${esc(d.name)}</b>${d.have ? ' <span class="badge b-gray">มีในงวดนี้แล้ว</span>' : ''}</td><td class="muted">${esc(d.code || '—')}</td>
+        <td><select class="select" style="height:30px;width:auto;border-radius:99px;font-size:12px" ${d.have ? 'disabled' : ''}>${groupOptions(prevG[nkey(d.name)] || 'general')}</select></td>
+        ${X.all ? `<td class="muted" style="font-size:11.5px;white-space:normal;max-width:280px">${esc(d.branches.replace(/(คลินิกทันตกรรม\S*|เดอะ เดนทิสทรี|ดี วัน เดนทัล)\s*/g, '').replace(/สาขา\s*/g, ' · ').replace(/^ · /, '')) || '—'}</td>` : ''}</tr>`).join('') || `<tr><td colspan="5" class="muted" style="text-align:center;padding:18px">ไม่พบแพทย์ของสาขานี้ในไฟล์ — เปิด “แสดงแพทย์ทุกสาขาในไฟล์” เพื่อเลือกเอง</td></tr>`}
+      </tbody></table></div>
+      <p class="muted" style="font-size:12px;margin:10px 0 0">ตั้งกลุ่มแพทย์ได้ทีละท่าน (ผู้ดำเนินการ / RDM) · แก้ไขภายหลังได้ที่การ์ดของแพทย์</p>
+    </div>
+    <div class="m-foot"><button class="btn btn-ghost" onclick="ptAddDoctor()"><i data-lucide="arrow-left"></i>กลับ</button><button class="btn btn-primary" onclick="ptDocImpOk()"><i data-lucide="user-plus"></i>เพิ่มแพทย์ที่เลือก</button></div>`, 'md');
+}
+function ptDocImpOk() {
+  const X = window._docImp; let n = 0;
+  document.querySelectorAll('#diTbl tr[data-i]').forEach(tr => {
+    const cb = tr.querySelector('input[type=checkbox]'); if (!cb.checked || cb.disabled) return;
+    const d = X.list[+tr.dataset.i]; if (PT.data.doctors.some(x => nkey(x.name) === nkey(d.name))) return;
+    PT.data.doctors.push({ name: d.name, code: d.code || '', group: tr.querySelector('select').value || 'general' }); n++;
+  });
+  if (!n) { toast('ยังไม่ได้เลือกแพทย์', 'info'); return; }
+  closeModal(); ptDirty(); renderPortal(); toast(`เพิ่มแพทย์ ${n} ท่านแล้ว`, 'users');
 }
 function ptAddDoctorOk() {
   const name = cleanName($('#pdName').value); if (!validName(name)) { toast('กรุณาระบุชื่อแพทย์', 'alert-circle'); return; }
